@@ -5,7 +5,7 @@
 ![License](https://img.shields.io/badge/License-MIT-grey)
 ![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20WSL2-orange)
 
-This project implements a production-grade, hardware-accelerated computer vision pipeline designed to ingest secure video feeds (SRTP) from DJI Enterprise drones. It leverages the NVIDIA DeepStream SDK to perform real-time object detection with near-zero latency using the `pyds` bindings.
+This project implements a production-grade, hardware-accelerated computer vision pipeline designed to ingest secure video feeds (SRTP) from DJI Consumer/Enterprise drones. It leverages the NVIDIA DeepStream SDK to perform real-time object detection with near-zero latency.
 
 The application allows for direct stream ingestion, hardware decoding (NVDEC), batch inference (TensorRT), and on-screen display rendering without CPU bottlenecks.
 
@@ -48,6 +48,7 @@ graph LR
 This application is designed to act as the ground station sink for DJI drones broadcasting over SRTP.
 
 1.  **Network Topology:** Ensure the drone controller or relay application targets the host IP.
+3.  **Port Forwarding:** Ensure your sistem is exposing the target port.
 2.  **Port Forwarding (WSL2):** If running on WSL2, the UDP traffic must be bridged from the Windows host to the Linux instance.
     ```powershell
     # Windows PowerShell (Admin)
@@ -58,7 +59,7 @@ This application is designed to act as the ground station sink for DJI drones br
 
 ### Prerequisites
 *   NVIDIA Driver 535+
-*   NVIDIA DeepStream SDK 6.4 or 7.0
+*   NVIDIA DeepStream SDK 6.4 or 7.0: https://docs.nvidia.com/metropolis/deepstream/dev-guide/text/DS_Installation.html#dgpu-setup-for-ubuntu
 *   GStreamer 1.16+
 *   Python 3.8+ with GObject Introspection
 
