@@ -1,1 +1,90 @@
-__pycache__
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.code-workspace
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Dependencies
+requirements-lock.txt
+poetry.lock
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Project-specific
+*.log
+*.tmp
+.cache/
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Computer Vision / Data files (large binary files)
+*.mp4
+*.avi
+*.mov
+*.flv
+*.mkv
+*.jpg
+*.jpeg
+*.png
+*.bmp
+*.tiff
+*.psd
+data/
+datasets/
+models/*.pth
+models/*.pb
+models/*.h5
+*.weights
+weights/
+checkpoints/
+
+# Output/Results
+output/
+results/
+tmp/
+temp/

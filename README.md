@@ -15,11 +15,11 @@ The pipeline is constructed to minimize memory copies between host and device. V
 
 ```mermaid
 graph LR
-    DJI[DJI Drone / SRTP Source] -->|UDP H.264| NET[Network Interface]
+    DJI["DJI Drone / SRTP Source"] -->|UDP H.264| NET["Network Interface"]
     NET -->|SRTP| G1[udpsrc]
     G1 -->|Depay/Parse| G2[nvv4l2decoder]
     G2 -->|NV12 Surface| G3[nvstreammux]
-    G3 -->|Batch Buffer| G4[nvinfer (YOLOv8)]
+    G3 -->|Batch Buffer| G4["nvinfer (YOLOv8)"]
     G4 -->|Meta Attached| G5[nvdsosd]
     G5 -->|Composited Output| G6[nveglglessink]
     
