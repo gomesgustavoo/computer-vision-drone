@@ -53,15 +53,6 @@ poetry.lock
 .env.local
 .env.*.local
 
-# Project-specific
-*.log
-*.tmp
-.cache/
-.pytest_cache/
-.coverage
-htmlcov/
-.tox/
-
 # Computer Vision / Data files (large binary files)
 *.mp4
 *.avi
@@ -82,12 +73,24 @@ models/*.h5
 *.weights
 weights/
 checkpoints/
+*.onnx
+*.onnx.data
+*.pt
+*.engine
+*.wts
 
-# Output/Results
-output/
-results/
-tmp/
-temp/
+# Project-specific
+*.log
+*.tmp
+.cache/
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+mediamtx/
+wget-log
+libnvdsinfer_custom_impl_Yolo.so
+
 
 # Ai agents related
 GEMINI.md

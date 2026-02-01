@@ -5,108 +5,80 @@
 ![License](https://img.shields.io/badge/License-MIT-grey)
 ![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20WSL2-orange)
 
-This project implements a production-grade, hardware-accelerated computer vision pipeline designed to ingest secure video feeds (SRTP) from DJI Consumer/Enterprise drones. It leverages the NVIDIA DeepStream SDK to perform real-time object detection with near-zero latency.
+This project implements a hardware-accelerated computer vision pipeline designed for real-time RTMP ingestion from DJI drones. Optimized for **WSL2**, it uses `decodebin` for robust stream handling and NVIDIA DeepStream for zero-copy inference.
 
-The application allows for direct stream ingestion, hardware decoding (NVDEC), batch inference (TensorRT), and on-screen display rendering without CPU bottlenecks.
+## System Architecture (WSL2)
 
-## System Architecture
-
-The pipeline is constructed to minimize memory copies between host and device. Video data remains in GPU VRAM (NvBufSurface) throughout the entire lifecycle—from decoding to inference and rendering.
+The pipeline uses a local RTMP server (**MediaMTX**) as a bridge between the Windows network and the WSL2 DeepStream environment.
 
 ```mermaid
-graph LR
-    DJI["DJI Drone / SRTP Source"] -->|UDP H.264| NET["Network Interface"]
-    NET -->|SRTP| G1[udpsrc]
-    G1 -->|Depay/Parse| G2[nvv4l2decoder]
-    G2 -->|NV12 Surface| G3[nvstreammux]
-    G3 -->|Batch Buffer| G4["nvinfer (YOLOv8)"]
-    G4 -->|Meta Attached| G5[nvdsosd]
-    G5 -->|Composited Output| G6[nveglglessink]
+graph TD
+    Drone["DJI Drone / OBS"] -->|RTMP:1935| WinIP["Windows IP (Port Forward)"]
+    WinIP -->|Bridge| MTX["MediaMTX (WSL2)"]
+    MTX -->|Internal RTMP| DS["DeepStream App (main.py)"]
     
-    subgraph Host
-    DJI
-    NET
-    end
-
-    subgraph "NVIDIA GPU (VRAM)"
-    G2
-    G3
-    G4
-    G5
+    subgraph "DeepStream Pipeline"
+    DS --> G1[rtmpsrc]
+    G1 --> G2[decodebin]
+    G2 --> G3[nvvideoconvert]
+    G3 --> G4[nvstreammux]
+    G4 --> G5["nvinfer (YOLOv8)"]
+    G5 --> G6[nvdsosd]
+    G6 --> G7[nveglglessink]
     end
 ```
 
-## Technical Highlights
+## Setup & Running
 
-*   **Zero-Copy Pipeline:** Utilizes NVIDIA's unified memory architecture. The H.264 stream is decoded directly into GPU memory, avoiding expensive PCIe transfers.
-*   **SRTP Decryption:** Implements RFC 3711 compliant decryption for secure video transmission, common in enterprise drone deployments.
-*   **TensorRT Inference:** Uses `nvinfer` to execute YOLO models optimized for FP16/INT8 precision.
-*   **WSL2 Integration:** Optimized for Windows Subsystem for Linux with direct D3D12 interop via `nveglglessink` for native-like performance on Windows hosts.
-
-## DJI Drone Integration
-
-This application is designed to act as the ground station sink for DJI drones broadcasting over SRTP.
-
-1.  **Network Topology:** Ensure the drone controller or relay application targets the host IP.
-3.  **Port Forwarding:** Ensure your sistem is exposing the target port.
-2.  **Port Forwarding (WSL2):** If running on WSL2, the UDP traffic must be bridged from the Windows host to the Linux instance.
-    ```powershell
-    # Windows PowerShell (Admin)
-    netsh interface portproxy add v4tov4 listenport=5000 listenaddress=0.0.0.0 connectport=5000 connectaddress=$(wsl hostname -I)
-    ```
-
-## Installation
-
-### Prerequisites
-*   NVIDIA Driver 535+
-*   NVIDIA DeepStream SDK 6.4 or 7.0: https://docs.nvidia.com/metropolis/deepstream/dev-guide/text/DS_Installation.html#dgpu-setup-for-ubuntu
-*   GStreamer 1.16+
-*   Python 3.8+ with GObject Introspection
-
-### Setup
-Run the initialization script to pull dependencies and configure the environment variables:
-
+### 1. RTMP Server (WSL2)
+We use MediaMTX to receive the drone feed. To start it:
 ```bash
-./setup.sh
+cd mediamtx
+./mediamtx
 ```
 
-## Usage
+### 2. Drone Connectivity (Windows Port Forwarding)
+Since WSL2 is behind NAT, you must forward port 1935 from Windows to WSL2. Run in **PowerShell (Admin)**:
 
-### 1. Model Configuration
-The application automatically generates a `config_infer_primary_yolo.txt` on first run. For production, replace the placeholder paths with your compiled TensorRT engine file:
+```powershell
+# Get your WSL2 IP first (inside WSL: ip addr show eth0)
+$wsl_ip = "172.21.229.176" 
 
-```ini
-[property]
-model-engine-file=./models/yolov8s.engine
+# Add Port Proxy
+netsh interface portproxy add v4tov4 listenport=1935 listenaddress=0.0.0.0 connectport=1935 connectaddress=$wsl_ip
+
+# Allow Firewall
+New-NetFirewallRule -DisplayName "WSL2 RTMP" -Direction Inbound -LocalPort 1935 -Protocol TCP -Action Allow
 ```
 
-### 2. Execution
-Launch the pipeline. The application will bind to `0.0.0.0:5000` and await the incoming SRTP stream.
+### 3. Drone Configuration
+Configure your DJI drone or OBS to stream to:
+*   **URL:** `rtmp://<YOUR_WINDOWS_IP>:1935/live`
+*   **Key:** `stream`
+*   **Codec:** H.264 (H.265 requires specific RTMP extensions not supported by all demuxers).
 
+### 4. Run DeepStream
+**Important:** Ensure the drone is actively streaming (check MediaMTX logs for `is publishing`) before starting the app.
 ```bash
 python3 main.py
 ```
 
-### 3. Simulation
-To validate the pipeline without a physical drone, simulate an incoming SRTP stream using the local loopback:
+## Technical Highlights
 
+*   **Robust Ingestion:** Uses `decodebin` to handle delayed video headers and dynamic stream discovery.
+*   **Zero-Copy:** Data remains in GPU memory from decoding to visualization.
+*   **Low Latency:** Configured with `sync=False` and `live-source=1` for real-time drone control.
+
+## Installation
+
+### Prerequisites
+*   NVIDIA Driver 535+ & WSL2 (WSLg support for display).
+*   NVIDIA DeepStream SDK 6.4+.
+
+### Setup
 ```bash
-gst-launch-1.0 videotestsrc is-live=true ! video/x-raw,width=1920,height=1080 ! \
-    x264enc speed-preset=ultrafast tune=zerolatency ! rtph264pay ! \
-    srtpenc key="000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d" \
-    rtp-cipher="aes-128-icm" rtp-auth="hmac-sha1-80" ! \
-    udpsink host=127.0.0.1 port=5000 sync=false
+./setup.sh
 ```
 
-## Performance Metrics
-
-| Resolution | Model | FPS (RTX 3080) | Latency |
-|------------|-------|----------------|---------|
-| 1080p      | YOLOv8s | 85+ | < 30ms |
-| 4K         | YOLOv8s | 45+ | < 50ms |
-
-*Metrics are estimated based on standard DeepStream reference benchmarks.*
-
 ## License
-
-MIT License. See [LICENSE](LICENSE) for details.
+MIT License.
