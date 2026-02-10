@@ -1,4 +1,4 @@
-# DeepStream Drone Surveillance Pipeline
+# DeepStream Drone
 
 ![DeepStream Version](https://img.shields.io/badge/NVIDIA%20DeepStream-6.4%2B-green)
 ![Python](https://img.shields.io/badge/Python-3.8%2B-blue)
@@ -27,7 +27,7 @@ graph LR
     end
 ```
 
-## GPU Optimization Strategy (Under the Hood)
+## GPU Optimization Strategy
 
 This pipeline is engineered to minimize **Host-to-Device (H2D)** and **Device-to-Host (D2H)** memory copies, which are the primary bottlenecks in high-FPS video analytics.
 
@@ -55,7 +55,7 @@ The model is executed using NVIDIA TensorRT, which optimizes the YOLOv8 ONNX gra
 ./setup.sh
 ```
 
-### 1. RTMP Server (WSL2)
+### 1. RTMP Server
 We use MediaMTX to receive the drone feed. To start it:
 ```bash
 cd mediamtx
